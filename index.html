@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI UHD Converter (Replicate)</title>
+</head>
+<body style="background:#121212;color:white;text-align:center;padding:50px;font-family:sans-serif">
+  <h1>AI UHD Converter (via Replicate)</h1>
+  <input type="file" id="fileInput" accept="image/*" />
+  <button onclick="uploadImage()">Proses AI UHD</button>
+  <p id="status"></p>
+  <a id="downloadLink" style="display:none;" download="upscaled.png">Download Hasil</a>
+
+  <div class="contact" style="margin-top:40px;text-align:center">
+    <h2>Costumer Service</h2>
+    <a href="https://wa.me/6281371626053" target="_blank" style="color:#00c6ff;text-decoration:none;display:block;margin:5px 0;font-weight:bold">
+      WhatsApp: 081371626053
+    </a>
+    <a href="https://tiktok.com/@dedyykenzie" target="_blank" style="color:#00c6ff;text-decoration:none;display:block;margin:5px 0;font-weight:bold">
+      TikTok: dedyykenzie
+    </a>
+  </div>
+
+  <script>
+    async function uploadImage() {
+      const input = document.getElementById('fileInput');
+      const file = input.files[0];
+      if (!file) return alert("Pilih foto dulu!");
+
+      const reader = new FileReader();
+      reader.onloadend = async function() {
+        const base64Image = reader.result.split(",")[1];
+        document.getElementById("status").innerText = "Menghubungkan ke AI...";
+        
+        const res = await fetch("https://api.replicate.com/v1/predictions", {
+          method: "POST",
+          headers: {
+            "Authorization": "Token YOUR_API_TOKEN",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            version: "9282fdb5e1347ac5f3d39826b45b5d0e36192997b207c3fb98ac216c79950c4e",
+            input: { image: "data:image/png;base64," + base64Image }
+          })
+        });
+
+        const data = await res.json();
+        if (data?.urls?.get) {
+          checkStatus(data.urls.get);
+        } else {
+          document.getElementById("status").innerText = "Gagal mulai prediksi.";
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function checkStatus(url) {
+      document.getElementById("status").innerText = "Memproses gambar...";
+      let done = false;
+      while (!done) {
+        const res = await fetch(url, {
+          headers: { "Authorization": "Token YOUR_API_TOKEN" }
+        });
+        const data = await res.json();
+        if (data.status === "succeeded") {
+          const output = data.output[0];
+          const link = document.getElementById("downloadLink");
+          link.href = output;
+          link.style.display = 'inline';
+          document.getElementById("status").innerText = "Selesai!";
+          done = true;
+        } else if (data.status === "failed") {
+          document.getElementById("status").innerText = "Gagal memproses gambar.";
+          done = true;
+        } else {
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+    }
+  </script>
+</body>
+</html>
